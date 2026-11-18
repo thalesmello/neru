@@ -156,6 +156,7 @@ The last column says whether the command answers while Neru is stopped by
 | `toggle-scroll-invert` | Optionally `--state on\|off\|toggle`, as in [Runtime toggles](cli.md#runtime-toggles). | `{"inverted": bool}` | yes |
 | `toggle-screen-share` | Optionally `--state on\|off\|toggle`, as in [Runtime toggles](cli.md#runtime-toggles). `ERR_NOT_SUPPORTED` on Linux, where nothing can hide the overlay. | `{"hidden": bool}` | yes |
 | `toggle-cursor-follow-selection` | Optionally `--state on\|off\|toggle`, as in [Runtime toggles](cli.md#runtime-toggles). | `{"following": bool}` | yes, but `stop` exits the mode, so it gets `ERR_INVALID_INPUT` |
+| `set-grid-opacity` | `--value <float>`, a finite number in `[0, 1]`. Overrides the grid cell-fill alpha for this daemon session. Never writes config, reloads config, or resets mode state. Allowed in idle as well as in grid modes. `ERR_NOT_SUPPORTED` when the overlay backend does not implement `GridAppearancePort` (non-macOS). `ERR_ACTION_FAILED` on a backend error. | none | no |
 | `query-displays`, `query-cursor`, `query-window`, `query-app` | See [Querying](#querying). | See [Querying](#querying). | yes |
 | `query-hints` | See [Querying](#querying). | See [Querying](#querying). | no |
 | `describe` | none | The object [`neru describe --json`](cli.md#neru-describe) prints. | yes |

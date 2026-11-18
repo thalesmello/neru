@@ -313,7 +313,7 @@ func (c *Controller) registerHandlers(cfg *config.Config) {
 
 	c.infoHandler.RegisterHandlers(c.Handlers)
 
-	overlayHandler := NewOverlayHandler(c.AppState, c.Logger)
+	overlayHandler := NewOverlayHandler(c.AppState, c.Logger, c.Overlay)
 	overlayHandler.RegisterHandlers(c.Handlers)
 
 	scrollHandler := NewScrollHandler(c.AppState, c.ScrollService, c.Logger)

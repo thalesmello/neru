@@ -80,6 +80,10 @@ const (
 	// CommandDescribe reports every word Neru reads, with the platforms each
 	// works on. `neru describe --json` is its CLI spelling.
 	CommandDescribe = "describe"
+
+	// CommandSetGridOpacity overrides the grid cell fill alpha for the current
+	// daemon session. It never writes config or resets mode state.
+	CommandSetGridOpacity = "set-grid-opacity"
 )
 
 // Mode-related constants.

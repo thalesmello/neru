@@ -357,6 +357,20 @@ void NeruShowMonitorSelectPanels(MonitorSelectTargetData *targets, int count, Mo
 /// Hide all monitor select overlay panels.
 void NeruHideMonitorSelectPanels(void);
 
+#pragma mark - Grid Appearance
+
+/// Override the cell background alpha for Grid and RecursiveGrid surfaces.
+/// opacity is the absolute fill alpha [0, 1]. A negative value removes the
+/// override and lets each draw call's style colour supply the alpha.
+/// Dispatches asynchronously; borders, text, badges and other modes are
+/// unaffected.
+/// @param window Overlay window handle
+/// @param opacity Cell fill alpha [0, 1] or negative to clear the override
+void NeruSetGridCellOpacity(OverlayWindow window, double opacity);
+
+/// Scope the live fill override to the active grid surface (not bisect/hints/vim).
+void NeruSetGridCellOpacityEnabled(OverlayWindow window, int enabled);
+
 #pragma mark - Vim
 
 /// Vim surface style. Every value is resolved in Go.

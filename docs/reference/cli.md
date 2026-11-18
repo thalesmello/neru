@@ -1444,6 +1444,30 @@ macOS Neru uses the deprecated `NSWindow.sharingType` API:
 | 15.0 to 15.3   | Partially effective                    |
 | 15.4 and newer | Limited to ScreenCaptureKit-based apps |
 
+### neru set-grid-opacity
+
+```
+neru set-grid-opacity --value <float>
+```
+
+Override the cell background alpha used by grid and recursive-grid mode for the
+current daemon session. The override applies immediately and lasts until the
+daemon restarts. Configuration is not written, the active mode is not exited,
+and no config reload or mode reset occurs. The command is allowed in idle as
+well as while a grid mode is running.
+
+Opacity 0 makes cells fully transparent; opacity 1 makes them fully opaque.
+Label badges, text, separators, and non-grid modes are unaffected.
+
+| Flag | Type | Description |
+| ---- | ---- | ----------- |
+| `--value` | float | Required. Cell fill alpha, a finite number in `[0, 1]`. |
+
+Errors: `ERR_INVALID_INPUT` for NaN, Inf, or a value outside `[0, 1]`.
+`ERR_NOT_SUPPORTED` when the active overlay backend does not implement
+`GridAppearancePort` (all non-macOS platforms for now). `ERR_ACTION_FAILED` on
+a backend error.
+
 ## Utilities
 
 ### neru roles

@@ -314,6 +314,14 @@ typedef NS_ENUM(NSInteger, NeruItemKind) {
 @property(nonatomic, assign) NSPoint cursorIndicatorFromPosition;  ///< Previous virtual pointer position
 @property(nonatomic, assign) NSPoint cursorIndicatorToPosition;    ///< Target virtual pointer position
 
+// Live opacity override for cell fill colours. Negative means no override;
+// [0, 1] replaces the alpha of gridBackgroundColor and gridMatchedBackgroundColor
+// at the moment style colours are assigned in each draw call and when updated
+// directly by NeruSetGridCellOpacity. Borders, text, badges and other modes
+// are unaffected.
+@property(nonatomic, assign) CGFloat gridCellOpacityOverride;
+@property(nonatomic, assign) BOOL gridCellOpacityEnabled;
+
 // Cached grid text colors to reduce allocations during drawing
 @property(nonatomic, strong) NSColor *cachedGridTextColor;
 @property(nonatomic, strong) NSColor *cachedGridMatchedTextColor;
@@ -480,6 +488,7 @@ typedef NS_ENUM(NSInteger, NeruItemKind) {
 		_cursorIndicatorTransitionActive = NO;
 		_cursorIndicatorFromPosition = NSZeroPoint;
 		_cursorIndicatorToPosition = NSZeroPoint;
+		_gridCellOpacityOverride = -1.0;
 
 		// Initialize cached colors
 		_cachedGridTextColor = _gridTextColor;
@@ -2043,7 +2052,9 @@ static NeruTextLayout *NeruLayoutFromGlyphStarts(NSString *text, const CGFloat *
 		@(self.gridSubKeyRows),
 		@(scale),
 		@(self.bounds.size.width),
-		@(self.bounds.size.height)
+		@(self.bounds.size.height),
+		@(self.gridCellOpacityOverride),
+		@(self.gridCellOpacityEnabled)
 	];
 	NSArray *last = self.gridStyleSignature;
 	self.gridStyleGeneration = NeruStyleGeneration(signature, &last, self.gridStyleGeneration);
@@ -2149,9 +2160,13 @@ static NeruTextLayout *NeruLayoutFromGlyphStarts(NSString *text, const CGFloat *
 		NSRect borderRect = [self gridBorderRectForCellRect:cellRect screenWidth:screenWidth];
 		cell.hidden = NO;
 		cell.frame = cellRect;
-		cell.backgroundColor =
-		    (isMatched && self.gridMatchedBackgroundColor ? self.gridMatchedBackgroundColor : self.gridBackgroundColor)
-		        .CGColor;
+		{
+			NSColor *cellBg = isMatched && self.gridMatchedBackgroundColor ? self.gridMatchedBackgroundColor
+			                                                               : self.gridBackgroundColor;
+			if (self.gridCellOpacityEnabled && self.gridCellOpacityOverride >= 0.0)
+				cellBg = [cellBg colorWithAlphaComponent:(CGFloat)self.gridCellOpacityOverride];
+			cell.backgroundColor = cellBg.CGColor;
+		}
 		NeruPlaceStrokeLayer(
 		    cell.border, NSOffsetRect(borderRect, -cellRect.origin.x, -cellRect.origin.y), self.gridBorderWidth, 0.0,
 		    (isMatched && self.gridMatchedBorderColor ? self.gridMatchedBorderColor : self.gridBorderColor));
@@ -4761,6 +4776,36 @@ void NeruDrawVim(OverlayWindow window, VimScene scene, VimStyle style) {
 			}
 		});
 	}
+}
+
+#pragma mark - Grid Appearance
+
+/// Override the cell background alpha for Grid and RecursiveGrid surfaces.
+void NeruSetGridCellOpacity(OverlayWindow window, double opacity) {
+	if (!window)
+		return;
+
+	OverlayWindowController *controller = (__bridge OverlayWindowController *)window;
+
+	dispatch_async(dispatch_get_main_queue(), ^{
+		@autoreleasepool {
+			controller.overlayView.gridCellOpacityOverride = (CGFloat)opacity;
+			[controller.overlayView setNeedsDisplay:YES];
+		}
+	});
+}
+
+/// Select whether this surface uses the live grid fill override.
+void NeruSetGridCellOpacityEnabled(OverlayWindow window, int enabled) {
+	if (!window)
+		return;
+	OverlayWindowController *controller = (__bridge OverlayWindowController *)window;
+	dispatch_async(dispatch_get_main_queue(), ^{
+		@autoreleasepool {
+			controller.overlayView.gridCellOpacityEnabled = enabled != 0;
+			[controller.overlayView setNeedsDisplay:YES];
+		}
+	});
 }
 
 void NeruClearVim(OverlayWindow window) {

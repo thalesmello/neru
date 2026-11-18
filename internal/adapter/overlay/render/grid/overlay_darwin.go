@@ -362,7 +362,10 @@ func (o *Overlay) DrawGrid(grid *domainGrid.Grid, currentInput string, style Sty
 		o.logger.Debug("Grid incremental update failed, falling back to full redraw")
 	}
 
-	o.Clear()
+	// A full cell replacement does not require an empty native frame. In
+	// particular, resetting a subgrid invalidates previousGrid and lands here.
+	// Keep the surface up; the native draw replaces all cell layers together.
+	o.InvalidateGridState()
 	visibleCells := o.filterCellsByViewport(cells)
 	o.drawGridCells(visibleCells, currentInput, style, style.LabelFontSizeFor(1, grid))
 

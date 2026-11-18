@@ -373,7 +373,7 @@ void NeruSetGridCellOpacityEnabled(OverlayWindow window, int enabled);
 
 /// Mask only overlay pixels for seconds (0.001 to 10), retaining state/input.
 /// Repeated calls restart the timeout; teardown cancels restoration.
-void NeruPeekGrid(OverlayWindow window, double seconds);
+void NeruPeekGrid(OverlayWindow window, double seconds, double opacity);
 
 #pragma mark - Vim
 

@@ -4,6 +4,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/y3owk1n/neru/internal/derrors"
 	"github.com/y3owk1n/neru/internal/domain"
+	"math"
+	"strconv"
 	"time"
 )
 
@@ -30,11 +32,19 @@ Examples:
 		if duration < time.Millisecond || duration > 10*time.Second {
 			return derrors.New(derrors.CodeInvalidInput, "peek duration must be between 1ms and 10s")
 		}
-		return sendCommand(cmd, domain.CommandPeekGrid, []string{"--duration=" + duration.String()})
+		opacity, err := cmd.Flags().GetFloat64("opacity")
+		if err != nil {
+			return err
+		}
+		if math.IsNaN(opacity) || math.IsInf(opacity, 0) || opacity < 0 || opacity > 1 {
+			return derrors.New(derrors.CodeInvalidInput, "peek opacity must be between 0 and 1")
+		}
+		return sendCommand(cmd, domain.CommandPeekGrid, []string{"--duration=" + duration.String(), "--opacity=" + strconv.FormatFloat(opacity, 'f', -1, 64)})
 	},
 }
 
 func init() {
 	PeekGridCmd.Flags().Duration("duration", time.Second, "How long to mask the grid (1ms to 10s)")
+	PeekGridCmd.Flags().Float64("opacity", 0, "Fraction of normal overlay opacity during peek (0 hides, 0.25 dims)")
 	RootCmd.AddCommand(PeekGridCmd)
 }

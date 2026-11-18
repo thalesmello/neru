@@ -17,7 +17,11 @@ type peekOverlayMock struct {
 	duration time.Duration
 }
 
-func (m *peekOverlayMock) PeekGrid(d time.Duration) error { m.calls++; m.duration = d; return nil }
+func (m *peekOverlayMock) PeekGrid(d time.Duration, opacity float64) error {
+	m.calls++
+	m.duration = d
+	return nil
+}
 
 func TestPeekGrid_ValidatesDuration(t *testing.T) {
 	for _, args := range [][]string{{"--duration=0"}, {"--duration=11s"}, {"--duration=NaN"}, {"--other"}, {"--duration"}} {
@@ -31,6 +35,18 @@ func TestPeekGrid_ValidatesDuration(t *testing.T) {
 		}
 	}
 }
+func TestPeekGrid_ValidatesOpacity(t *testing.T) {
+	for _, value := range []string{"NaN", "Inf", "-0.1", "1.1"} {
+		if _, _, err := parsePeekOptions([]string{"--opacity", value}); err == nil {
+			t.Fatalf("accepted %s", value)
+		}
+	}
+	_, opacity, err := parsePeekOptions([]string{"--duration", "1s", "--opacity", "0.25"})
+	if err != nil || opacity != 0.25 {
+		t.Fatalf("opacity=%v err=%v", opacity, err)
+	}
+}
+
 func TestOverlayHandler_PeekGrid_RequiresActiveGrid(t *testing.T) {
 	app := state.NewAppState()
 	mock := &peekOverlayMock{}

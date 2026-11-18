@@ -7,5 +7,5 @@ import "time"
 // restarts the deadline; leaving the surface cancels restoration. It is not
 // screen-share exclusion and never reloads configuration.
 type GridPeekPort interface {
-	PeekGrid(duration time.Duration) error
+	PeekGrid(duration time.Duration, opacity float64) error
 }

@@ -2230,6 +2230,8 @@ static NeruTextLayout *NeruLayoutFromGlyphStarts(NSString *text, const CGFloat *
 @property(nonatomic, assign) uint64_t freshOrderGeneration;
 @property(nonatomic, assign) uint64_t peekGeneration;
 @property(nonatomic, assign) BOOL peekActive;
+@property(nonatomic, assign) CGFloat peekOriginalAlpha;
+@property(nonatomic, assign) CGFloat peekOpacity;
 - (void)cancelPeek;
 - (void)applyOverlayCollectionBehavior;
 - (void)reattachToAllSpacesIfVisible;
@@ -2272,6 +2274,8 @@ static BOOL NeruWindowIsOnscreenPerWindowServer(NSInteger windowNumber);
 		_shouldBeVisible = NO;
 		_needsWindowServerReattach = NO;
 		_windowServerReattachScheduled = NO;
+		_peekOriginalAlpha = 1.0;
+		_peekOpacity = 1.0;
 		[self createWindow];
 	}
 	return self;
@@ -2280,7 +2284,7 @@ static BOOL NeruWindowIsOnscreenPerWindowServer(NSInteger windowNumber);
 - (void)cancelPeek {
 	self.peekGeneration++;
 	self.peekActive = NO;
-	[self.window setAlphaValue:1.0];
+	[self.window setAlphaValue:self.peekOriginalAlpha];
 }
 
 - (void)applyOverlayCollectionBehavior {
@@ -2341,7 +2345,7 @@ static BOOL NeruWindowIsOnscreenPerWindowServer(NSInteger windowNumber);
 	self.window = [self makePanelWithFrame:old.frame];
 	[self.window setLevel:old.level];
 	[self.window setSharingType:self.sharingType];
-	[self.window setAlphaValue:self.peekActive ? 0.0 : 1.0];
+	[self.window setAlphaValue:self.peekActive ? self.peekOriginalAlpha * self.peekOpacity : self.peekOriginalAlpha];
 	[old orderOut:nil];
 	[self.window setContentView:self.overlayView];
 	[old close];
@@ -4813,8 +4817,9 @@ void NeruSetGridCellOpacity(OverlayWindow window, double opacity) {
 }
 
 /// Make only the pixels transparent; the window, layers and mode stay alive.
-void NeruPeekGrid(OverlayWindow window, double seconds) {
-	if (!window || !isfinite(seconds) || seconds < 0.001 || seconds > 10.0)
+void NeruPeekGrid(OverlayWindow window, double seconds, double opacity) {
+	if (!window || !isfinite(seconds) || seconds < 0.001 || seconds > 10.0 || !isfinite(opacity) || opacity < 0 ||
+	    opacity > 1)
 		return;
 	OverlayWindowController *controller = (__bridge OverlayWindowController *)window;
 	dispatch_async(dispatch_get_main_queue(), ^{
@@ -4822,8 +4827,11 @@ void NeruPeekGrid(OverlayWindow window, double seconds) {
 			if (!controller.shouldBeVisible || !controller.overlayView.gridCellOpacityEnabled)
 				return;
 			uint64_t generation = ++controller.peekGeneration;
+			if (!controller.peekActive)
+				controller.peekOriginalAlpha = controller.window.alphaValue;
 			controller.peekActive = YES;
-			[controller.window setAlphaValue:0.0];
+			controller.peekOpacity = opacity;
+			[controller.window setAlphaValue:controller.peekOriginalAlpha * opacity];
 			__weak OverlayWindowController *weakController = controller;
 			dispatch_after(
 			    dispatch_time(DISPATCH_TIME_NOW, (int64_t)(seconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -4832,7 +4840,7 @@ void NeruPeekGrid(OverlayWindow window, double seconds) {
 					    if (!live || live.peekGeneration != generation || !live.peekActive || !live.shouldBeVisible)
 						    return;
 					    live.peekActive = NO;
-					    [live.window setAlphaValue:1.0];
+					    [live.window setAlphaValue:live.peekOriginalAlpha];
 					    [live reassertOverlayOnActiveSpace];
 				    }
 			    });

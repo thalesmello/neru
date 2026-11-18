@@ -1463,14 +1463,17 @@ fine-grid confirmation exits when repeat is off; repeat keeps the grid active.
 ### neru peek-grid
 
 ```bash
-neru peek-grid [--duration 1s]
+neru peek-grid [--duration 1s] [--opacity 0.25]
 ```
 
 On macOS, makes the active Grid or Recursive Grid visually invisible for the
 requested duration (1ms–10s, default 1s). It does not leave the mode, reset the
 selection, change configured colors, or release keyboard capture. Keystrokes
 keep updating the hidden grid; the current result reappears at the deadline.
-A repeated peek restarts the deadline. Leaving the surface cancels restoration.
+`--opacity` sets the fraction of normal overlay opacity during the peek:
+`0` (default) fully hides it; `0.25` dims it to one quarter. Repeated peeks
+restart the deadline without compounding the dimming. The pre-peek opacity
+is restored, not a hard-coded value. Leaving the surface cancels restoration.
 Other overlay backends report `NOT_SUPPORTED`. This is separate from hiding
 an overlay in screen-sharing captures.
 

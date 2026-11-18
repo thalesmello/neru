@@ -245,6 +245,10 @@ func (m *GridMode) ResetInput() {
 	// This method owns the full redraw below. The notifying Reset would
 	// first narrow/redraw through onUpdate and then redraw again here.
 	handler.grid.Manager.ResetSilent()
+	// ResetSilent deliberately skips onUpdate; restore the visibility filter
+	// that callback normally clears. Otherwise every unmatched base cell is
+	// hidden after leaving a filtered subgrid, even when peek opacity restores.
+	handler.setGridHideUnmatched(false)
 
 	// Clear the stale selection, since no cell is selected once the input is
 	// reset. The session builds its Context and Manager together, so the guard

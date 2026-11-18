@@ -161,15 +161,21 @@ func (m *HintsMode) ExitSteps() []string {
 func (m *HintsMode) ResetInput() {}
 
 // Backspace takes back the last typed character of the hint label being
-// entered, and forgets where a cycle_hint walk had got to.
+// entered, or asynchronously rescans the session when input is already empty.
+// It also forgets where a cycle_hint walk had got to.
 func (m *HintsMode) Backspace() {
 	handler := m.handler
 
 	if handler.hints != nil && handler.hints.Context != nil &&
 		handler.hints.Context.Manager() != nil {
-		backspaceErr := handler.hints.Context.Manager().HandleBackspace()
-		if backspaceErr != nil {
-			handler.logger.Error("Hint backspace failed", zap.Error(backspaceErr))
+		manager := handler.hints.Context.Manager()
+		if manager.CurrentInput() != "" {
+			if err := manager.HandleBackspace(); err != nil {
+				handler.logger.Error("Hint backspace failed", zap.Error(err))
+			}
+		} else {
+			session := handler.modeSession
+			go handler.outer.refreshHintsAfterBackspace(session)
 		}
 	}
 

@@ -262,7 +262,7 @@ func (h *ActionsHandler) handleCycleHintAction(
 }
 
 // handleRefreshHintsAction rescans the open hints session with its own flags.
-func (h *ActionsHandler) handleRefreshHintsAction() ipc.Response {
+func (h *ActionsHandler) handleRefreshHintsAction(parsed parsedActionArgs) ipc.Response {
 	if h.modesHandler == nil {
 		return ipc.Response{
 			Success: false,
@@ -271,7 +271,12 @@ func (h *ActionsHandler) handleRefreshHintsAction() ipc.Response {
 		}
 	}
 
-	err := h.modesHandler.RefreshHints()
+	var err error
+	if parsed.ifInputEmpty {
+		err = h.modesHandler.RefreshHintsIfEmpty()
+	} else {
+		err = h.modesHandler.RefreshHints()
+	}
 	if err != nil {
 		h.logger.Debug("Failed to refresh hints", zap.Error(err))
 

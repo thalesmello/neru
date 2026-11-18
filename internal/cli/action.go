@@ -467,18 +467,39 @@ at the current cursor location.`,
 var ActionCycleHintCmd = BuildCycleHintCommand()
 
 // ActionRefreshHintsCmd rescans the open hints session with its own flags.
-var ActionRefreshHintsCmd = BuildActionCommand(
-	"refresh_hints",
-	"Rescan hints with the current session's flags",
-	`Rescan the elements in hints mode and redraw the labels, keeping the flags the
+var ActionRefreshHintsCmd = buildRefreshHintsCommand()
+
+func buildRefreshHintsCommand() *cobra.Command {
+	var ifInputEmpty bool
+
+	cmd := BuildActionCommand(
+		"refresh_hints",
+		"Rescan hints with the current session's flags",
+		`Rescan the elements in hints mode and redraw the labels, keeping the flags the
 session was activated with. A --strategy or --capture-scope cycle stays on the
 entry in use, and the filters, action and --on-exit steps carry over.
 
+With --if-input-empty, do nothing while a hint token is being typed or search
+is active. This is safe for background refresh requests.
+
 Requires hints mode to be active. It refuses a session started with --targets,
 since there is nothing to rescan. If the rescan finds nothing, hints mode exits.`,
-	[]string{"refresh_hints"},
-	false,
-)
+		[]string{"refresh_hints"},
+		false,
+	)
+	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
+		args := []string{"refresh_hints"}
+		if ifInputEmpty {
+			args = append(args, "--if-input-empty")
+		}
+
+		return sendCommand(cmd, "action", args)
+	}
+	cmd.Flags().BoolVar(&ifInputEmpty, "if-input-empty", false,
+		"Skip refresh while typing a hint token or searching")
+
+	return cmd
+}
 
 // ActionSessionActionCmd runs the open hints session's --action at the cursor.
 var ActionSessionActionCmd = BuildActionCommand(

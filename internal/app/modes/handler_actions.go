@@ -106,6 +106,11 @@ func (h *Handler) RefreshHints() error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	return h.refreshHints()
+}
+
+// refreshHints rescans the current session. Caller must hold h.mu.
+func (h *handlerState) refreshHints() error {
 	if h.appState.CurrentMode() != domain.ModeHints {
 		return derrors.New(derrors.CodeInvalidInput, "refresh_hints requires hints mode")
 	}

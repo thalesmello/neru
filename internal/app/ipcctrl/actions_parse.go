@@ -27,6 +27,7 @@ type parsedActionArgs struct {
 	hasSteps       bool
 	useBail        bool
 	confirmOnLabel bool
+	ifInputEmpty   bool
 	stateStr       string
 	hasState       bool
 	useToggle      bool
@@ -150,14 +151,15 @@ var actionFlagSpecs = map[string]flagSpec{
 		p.texts = append(p.texts, parseCSV(v)...)
 	})},
 
-	flagCenter:    {apply: intoFlag(func(p *parsedActionArgs) { p.hasCenter = true })},
-	flagWindow:    {apply: intoFlag(func(p *parsedActionArgs) { p.hasWindow = true })},
-	flagSelection: {apply: intoFlag(func(p *parsedActionArgs) { p.useSelection = true })},
-	flagBare:      {apply: intoFlag(func(p *parsedActionArgs) { p.useBare = true })},
-	flagToggle:    {apply: intoFlag(func(p *parsedActionArgs) { p.useToggle = true })},
-	flagPrevious:  {apply: intoFlag(func(p *parsedActionArgs) { p.usePrevious = true })},
-	flagBackward:  {apply: intoFlag(func(p *parsedActionArgs) { p.useBackward = true })},
-	flagBail:      {apply: intoFlag(func(p *parsedActionArgs) { p.useBail = true })},
+	flagCenter:       {apply: intoFlag(func(p *parsedActionArgs) { p.hasCenter = true })},
+	flagWindow:       {apply: intoFlag(func(p *parsedActionArgs) { p.hasWindow = true })},
+	flagSelection:    {apply: intoFlag(func(p *parsedActionArgs) { p.useSelection = true })},
+	flagBare:         {apply: intoFlag(func(p *parsedActionArgs) { p.useBare = true })},
+	flagToggle:       {apply: intoFlag(func(p *parsedActionArgs) { p.useToggle = true })},
+	flagPrevious:     {apply: intoFlag(func(p *parsedActionArgs) { p.usePrevious = true })},
+	flagBackward:     {apply: intoFlag(func(p *parsedActionArgs) { p.useBackward = true })},
+	flagBail:         {apply: intoFlag(func(p *parsedActionArgs) { p.useBail = true })},
+	flagIfInputEmpty: {apply: intoFlag(func(p *parsedActionArgs) { p.ifInputEmpty = true })},
 	flagConfirmOnLabel: {
 		apply: intoFlag(func(p *parsedActionArgs) { p.confirmOnLabel = true }),
 	},

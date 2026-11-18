@@ -56,6 +56,7 @@ const (
 	flagSteps          = "--steps"
 	flagBackward       = "--backward"
 	flagConfirmOnLabel = "--confirm-on-label"
+	flagIfInputEmpty   = "--if-input-empty"
 	flagStrategy       = "--strategy"
 	flagRole           = "--role"
 	flagText           = "--text"
@@ -226,7 +227,7 @@ func (h *ActionsHandler) dispatchByName(
 		return h.handleSearchHintsAction(parsed), true
 
 	case action.IsRefreshHintsAction(actionName):
-		return h.handleRefreshHintsAction(), true
+		return h.handleRefreshHintsAction(parsed), true
 
 	case action.IsSessionActionAction(actionName):
 		return h.handleSessionAction(ctx), true

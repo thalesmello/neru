@@ -692,7 +692,9 @@ func (h *handlerState) handleGridModeKey(key string) {
 		captureScope := h.grid.Context.CaptureScope()
 		noSubgrid := h.grid.Context.NoSubgrid()
 
-		if pendingAction == nil && !repeat && !cursorFollowSelection {
+		// Repeat alone must not turn cursor-hold aiming into an action.
+		// Without a pending click, fine keys only select; Space confirms.
+		if pendingAction == nil && !cursorFollowSelection {
 			h.refreshGridVirtualPointer()
 
 			return

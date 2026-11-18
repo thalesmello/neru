@@ -21,8 +21,9 @@ type Manager struct {
 	inSubgrid     bool
 	// subgridOff completes a selection at the cell's center as soon as its
 	// label is typed, rather than opening the subgrid.
-	subgridOff   bool
-	selectedCell *Cell
+	subgridOff       bool
+	selectedCell     *Cell
+	lastSubgridIndex int // -1 until a fine key has selected a cell
 	// Subgrid configuration
 	subDims domain.GridDimensions
 	subKeys string
@@ -50,13 +51,14 @@ func NewManager(
 	}
 
 	return &Manager{
-		Logger:      logger,
-		grid:        grid,
-		labelLength: labelLength,
-		onUpdate:    onUpdate,
-		onShowSub:   onShowSub,
-		subDims:     subDims,
-		subKeys:     string(SubgridKeys(subKeys, subDims.CellCount())),
+		lastSubgridIndex: -1,
+		Logger:           logger,
+		grid:             grid,
+		labelLength:      labelLength,
+		onUpdate:         onUpdate,
+		onShowSub:        onShowSub,
+		subDims:          subDims,
+		subKeys:          string(SubgridKeys(subKeys, subDims.CellCount())),
 	}
 }
 
@@ -122,6 +124,19 @@ func (m *Manager) SelectedCell() (*Cell, bool) {
 	return m.selectedCell, true
 }
 
+// LastSubgridCell reports the last fine cell selected and its key index.
+// Before a fine key is chosen it reports false.
+func (m *Manager) LastSubgridCell() (image.Rectangle, int, bool) {
+	if m.selectedCell == nil || m.lastSubgridIndex < 0 {
+		return image.Rectangle{}, -1, false
+	}
+	cells := SubgridCells(m.selectedCell.Bounds(), m.subDims)
+	if m.lastSubgridIndex >= len(cells) {
+		return image.Rectangle{}, -1, false
+	}
+	return cells[m.lastSubgridIndex], m.lastSubgridIndex, true
+}
+
 // SetSubgridEnabled decides what a full cell label does. On, it opens the
 // subgrid. Off, it completes the selection at the cell's center.
 func (m *Manager) SetSubgridEnabled(enabled bool) {
@@ -148,6 +163,7 @@ func (m *Manager) Reset() {
 func (m *Manager) ResetSilent() {
 	m.SetCurrentInput("")
 	m.mainGridInput = ""
+	m.lastSubgridIndex = -1
 	m.inSubgrid = false
 	m.selectedCell = nil
 }
@@ -176,6 +192,7 @@ func (m *Manager) UpdateSubKeys(subKeys string) {
 // HandleBackspace applies grid backspace behavior. It deletes one input character,
 // or exits subgrid and restores main-grid input context when appropriate.
 func (m *Manager) HandleBackspace() (image.Point, bool) {
+	m.lastSubgridIndex = -1
 	if len(m.CurrentInput()) > 0 {
 		m.SetCurrentInput(m.CurrentInput()[:len(m.CurrentInput())-1])
 
@@ -250,6 +267,7 @@ func (m *Manager) MoveDirection(dir domain.Direction, count int) (image.Point, b
 	// A subgrid selection is a single keypress, so no partial input survives
 	// the move.
 	m.SetCurrentInput("")
+	m.lastSubgridIndex = -1
 
 	if m.onShowSub != nil {
 		m.onShowSub(m.selectedCell)
@@ -308,6 +326,7 @@ func (m *Manager) handleLabelLengthReached() (image.Point, bool) {
 	}
 
 	m.selectedCell = cell
+	m.lastSubgridIndex = -1
 
 	if m.subgridOff {
 		// The label stays typed, so the overlay keeps the cell highlighted
@@ -355,6 +374,7 @@ func (m *Manager) handleSubgridSelection(key string) (image.Point, bool) {
 
 	// Calculate center point of the selected subgrid cell, rounded to nearest pixel
 	selected := cells[keyIndex]
+	m.lastSubgridIndex = keyIndex
 	xCoordinate := selected.Min.X + gridRound(selected.Dx())
 	yCoordinate := selected.Min.Y + gridRound(selected.Dy())
 	m.Logger.Debug("Grid subgrid selection complete",

@@ -26,6 +26,7 @@ import (
 type extensionName string
 
 const (
+	extensionNativeNudge       extensionName = "native grid nudge"
 	extensionRepeatControl     extensionName = "repeat control"
 	extensionSelectionTracking extensionName = "selection tracking"
 	extensionCellNavigation    extensionName = "cell navigation"
@@ -40,6 +41,12 @@ const (
 	extensionScopeReport       extensionName = "capture scope reporting"
 	extensionSelectionRegion   extensionName = "selection region reporting"
 )
+
+// nativeNudger moves a grid selection in fractions of its active rectangle,
+// without clicking, rebuilding the frame, or leaving the mode.
+type nativeNudger interface {
+	NativeNudge(domain.Direction, int, int) error
+}
 
 // repeatSetter updates confirmation disposition without reactivating a mode.
 type repeatSetter interface{ ApplyRepeat(bool) bool }

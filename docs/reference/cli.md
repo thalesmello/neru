@@ -1450,6 +1450,18 @@ macOS Neru uses the deprecated `NSWindow.sharingType` API:
 | 15.0 to 15.3   | Partially effective                    |
 | 15.4 and newer | Limited to ScreenCaptureKit-based apps |
 
+### neru nudge-grid
+
+```sh
+neru nudge-grid --direction up|down|left|right --nudges-per-cell 4 --count 1
+```
+
+Nudge the active **native Grid** selection without clicking, resetting the grid, or exiting the mode. Other modes and idle return an explicit error. `--nudges-per-cell` defaults to 4 and must be positive; `--count` defaults to 1 and must be nonnegative. Count zero initializes an absent selection at the active rectangle's center without movement.
+
+The active rectangle is the union of cells matching the coarse input prefix before a cell is selected, then the selected coarse cell, then the last fine cell chosen. Each nudge spans its width or height divided by `--nudges-per-cell`; fractional steps accumulate so four nudges span exactly a cell at the default setting. Movement is clamped to the whole grid. A new selection resets the accumulator and selecting a fine key centers that fine cell normally.
+
+The virtual selection/pointer moves while cursor-hold is active. The physical cursor moves only when cursor-follow-selection is enabled. This command never clicks or changes keyboard capture.
+
 ### neru set-grid-repeat
 
 ```bash

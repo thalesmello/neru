@@ -316,6 +316,7 @@ func (c *Controller) registerHandlers(cfg *config.Config) {
 	overlayHandler := NewOverlayHandler(c.AppState, c.Logger, c.Overlay)
 	if c.Modes != nil {
 		overlayHandler.setGridRepeat = c.Modes.SetGridRepeat
+		overlayHandler.nudgeGrid = c.Modes.NudgeGrid
 	}
 	overlayHandler.RegisterHandlers(c.Handlers)
 

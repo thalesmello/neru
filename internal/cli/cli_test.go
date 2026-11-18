@@ -90,6 +90,7 @@ func TestCommandInitialization(t *testing.T) {
 		"set-grid-opacity":               false,
 		"peek-grid":                      false,
 		"set-grid-repeat":                false,
+		"nudge-grid":                     false,
 		"recursive_grid":                 false,
 		"bisect":                         false,
 		"monitor_select":                 false,

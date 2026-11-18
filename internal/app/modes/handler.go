@@ -140,6 +140,7 @@ type handlerState struct {
 
 	hints         *components.HintsComponent
 	grid          *components.GridComponent
+	gridNudge     gridNudgeAccumulator
 	scroll        *components.ScrollComponent
 	recursiveGrid *components.RecursiveGridComponent
 	bisect        *components.BisectComponent

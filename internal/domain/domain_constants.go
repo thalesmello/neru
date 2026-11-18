@@ -90,6 +90,9 @@ const (
 
 	// CommandSetGridRepeat changes active confirmation disposition in place.
 	CommandSetGridRepeat = "set-grid-repeat"
+
+	// CommandNudgeGrid nudges the active native Grid selection without clicking.
+	CommandNudgeGrid = "nudge-grid"
 )
 
 // Mode-related constants.

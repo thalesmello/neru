@@ -77,6 +77,8 @@ func TestHandleGridModeKey_CompleteSelectionDoesNotMoveWhenCursorFollowSelection
 	handler.handleGridModeKey("A")
 	handler.handleGridModeKey("A")
 	handler.handleGridModeKey("A")
+	handler.grid.Context.SetRepeat(true)
+	handler.handleGridModeKey("A") // fine aim must stay virtual even with repeat on
 
 	if moveCount != 0 {
 		t.Fatalf("handleGridModeKey() moved cursor %d times, want 0", moveCount)

@@ -88,6 +88,7 @@ func TestCommandInitialization(t *testing.T) {
 		"toggle-cursor-follow-selection": false,
 		"toggle-scroll-invert":           false,
 		"set-grid-opacity":               false,
+		"peek-grid":                      false,
 		"recursive_grid":                 false,
 		"bisect":                         false,
 		"monitor_select":                 false,

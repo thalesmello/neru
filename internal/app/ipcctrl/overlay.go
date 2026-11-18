@@ -55,6 +55,7 @@ func (h *OverlayHandler) RegisterHandlers(
 ) {
 	handlers[domain.CommandToggleScreenShare] = h.handleToggleScreenShare
 	handlers[domain.CommandSetGridOpacity] = h.handleSetGridOpacity
+	handlers[domain.CommandPeekGrid] = h.handlePeekGrid
 }
 
 func (h *OverlayHandler) handleToggleScreenShare(

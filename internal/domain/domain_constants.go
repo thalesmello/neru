@@ -84,6 +84,9 @@ const (
 	// CommandSetGridOpacity overrides the grid cell fill alpha for the current
 	// daemon session. It never writes config or resets mode state.
 	CommandSetGridOpacity = "set-grid-opacity"
+
+	// CommandPeekGrid masks the active grid without changing its mode or input.
+	CommandPeekGrid = "peek-grid"
 )
 
 // Mode-related constants.

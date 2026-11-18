@@ -371,6 +371,10 @@ void NeruSetGridCellOpacity(OverlayWindow window, double opacity);
 /// Scope the live fill override to the active grid surface (not bisect/hints/vim).
 void NeruSetGridCellOpacityEnabled(OverlayWindow window, int enabled);
 
+/// Mask only overlay pixels for seconds (0.001 to 10), retaining state/input.
+/// Repeated calls restart the timeout; teardown cancels restoration.
+void NeruPeekGrid(OverlayWindow window, double seconds);
+
 #pragma mark - Vim
 
 /// Vim surface style. Every value is resolved in Go.

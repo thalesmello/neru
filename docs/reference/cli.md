@@ -1444,6 +1444,20 @@ macOS Neru uses the deprecated `NSWindow.sharingType` API:
 | 15.0 to 15.3   | Partially effective                    |
 | 15.4 and newer | Limited to ScreenCaptureKit-based apps |
 
+### neru peek-grid
+
+```bash
+neru peek-grid [--duration 1s]
+```
+
+On macOS, makes the active Grid or Recursive Grid visually invisible for the
+requested duration (1ms–10s, default 1s). It does not leave the mode, reset the
+selection, change configured colors, or release keyboard capture. Keystrokes
+keep updating the hidden grid; the current result reappears at the deadline.
+A repeated peek restarts the deadline. Leaving the surface cancels restoration.
+Other overlay backends report `NOT_SUPPORTED`. This is separate from hiding
+an overlay in screen-sharing captures.
+
 ### neru set-grid-opacity
 
 ```

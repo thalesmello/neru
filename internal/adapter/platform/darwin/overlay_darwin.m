@@ -2228,6 +2228,9 @@ static NeruTextLayout *NeruLayoutFromGlyphStarts(NSString *text, const CGFloat *
 @property(nonatomic, assign) CFTimeInterval lastOnscreenVerifyTime;
 @property(nonatomic, assign) int onscreenProbeFailureStreak;
 @property(nonatomic, assign) uint64_t freshOrderGeneration;
+@property(nonatomic, assign) uint64_t peekGeneration;
+@property(nonatomic, assign) BOOL peekActive;
+- (void)cancelPeek;
 - (void)applyOverlayCollectionBehavior;
 - (void)reattachToAllSpacesIfVisible;
 - (void)verifyOnscreenAfterFreshOrder;
@@ -2272,6 +2275,12 @@ static BOOL NeruWindowIsOnscreenPerWindowServer(NSInteger windowNumber);
 		[self createWindow];
 	}
 	return self;
+}
+
+- (void)cancelPeek {
+	self.peekGeneration++;
+	self.peekActive = NO;
+	[self.window setAlphaValue:1.0];
 }
 
 - (void)applyOverlayCollectionBehavior {
@@ -2332,6 +2341,7 @@ static BOOL NeruWindowIsOnscreenPerWindowServer(NSInteger windowNumber);
 	self.window = [self makePanelWithFrame:old.frame];
 	[self.window setLevel:old.level];
 	[self.window setSharingType:self.sharingType];
+	[self.window setAlphaValue:self.peekActive ? 0.0 : 1.0];
 	[old orderOut:nil];
 	[self.window setContentView:self.overlayView];
 	[old close];
@@ -2340,6 +2350,8 @@ static BOOL NeruWindowIsOnscreenPerWindowServer(NSInteger windowNumber);
 // A healthy CanJoinAllSpaces window is already on the new Space, so repair only
 // a window AppKit or the WindowServer reports dropped.
 - (void)reassertOverlayOnActiveSpace {
+	if (self.peekActive)
+		return;  // transparent by request, not a missing window
 	if (!self.shouldBeVisible || ![self hasDrawableFrame] || self.windowServerReattachScheduled)
 		return;
 
@@ -2371,8 +2383,8 @@ static BOOL NeruWindowIsOnscreenPerWindowServer(NSInteger windowNumber);
 - (void)verifyOnscreenAfterFreshOrder {
 	uint64_t generation = ++self.freshOrderGeneration;
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, kNeruFreshOrderVerifyDelayNs), dispatch_get_main_queue(), ^{
-		if (generation != self.freshOrderGeneration || !self.shouldBeVisible || ![self hasDrawableFrame] ||
-		    self.windowServerReattachScheduled || !self.window.isVisible)
+		if (self.peekActive || generation != self.freshOrderGeneration || !self.shouldBeVisible ||
+		    ![self hasDrawableFrame] || self.windowServerReattachScheduled || !self.window.isVisible)
 			return;
 
 		// AppKit's cache can claim the active Space while the server disagrees,
@@ -2614,6 +2626,7 @@ void NeruDestroyOverlayWindow(OverlayWindow window) {
 		@autoreleasepool {
 			OverlayWindowController *controller = CFBridgingRelease(window);
 			controller.shouldBeVisible = NO;
+			[controller cancelPeek];
 			[controller.window close];
 		}
 	};
@@ -2635,6 +2648,7 @@ void NeruShowOverlayWindow(OverlayWindow window) {
 
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
+			[controller cancelPeek];  // a new surface must not inherit an old peek
 			controller.shouldBeVisible = YES;
 
 			[controller.window setLevel:kCGMaximumWindowLevel];
@@ -2661,6 +2675,7 @@ void NeruHideOverlayWindow(OverlayWindow window) {
 		controller.freshOrderGeneration++;
 		controller.onscreenProbeFailureStreak = 0;
 		[controller.window orderOut:nil];
+		[controller cancelPeek];
 		// Shrink to 1x1 to release the large backing store (saves ~47MB per
 		// Retina-resolution full-screen window). The next resize/show call
 		// will restore the proper frame before the window becomes visible.
@@ -2673,6 +2688,7 @@ void NeruHideOverlayWindow(OverlayWindow window) {
 				controller.freshOrderGeneration++;
 				controller.onscreenProbeFailureStreak = 0;
 				[controller.window orderOut:nil];
+				[controller cancelPeek];
 				[controller.window setFrame:NSMakeRect(0, 0, 1, 1) display:NO];
 				[controller.overlayView setFrame:NSMakeRect(0, 0, 1, 1)];
 			}
@@ -3259,6 +3275,7 @@ void NeruReplaceOverlayWindow(OverlayWindow *pwindow) {
 
 		if (oldController) {
 			oldController.shouldBeVisible = NO;
+			[oldController cancelPeek];
 			[oldController.window close];
 			CFRelease(*pwindow);  // Balance the CFBridgingRetain from NeruCreateOverlayWindow
 		}
@@ -4795,6 +4812,34 @@ void NeruSetGridCellOpacity(OverlayWindow window, double opacity) {
 	});
 }
 
+/// Make only the pixels transparent; the window, layers and mode stay alive.
+void NeruPeekGrid(OverlayWindow window, double seconds) {
+	if (!window || !isfinite(seconds) || seconds < 0.001 || seconds > 10.0)
+		return;
+	OverlayWindowController *controller = (__bridge OverlayWindowController *)window;
+	dispatch_async(dispatch_get_main_queue(), ^{
+		@autoreleasepool {
+			if (!controller.shouldBeVisible || !controller.overlayView.gridCellOpacityEnabled)
+				return;
+			uint64_t generation = ++controller.peekGeneration;
+			controller.peekActive = YES;
+			[controller.window setAlphaValue:0.0];
+			__weak OverlayWindowController *weakController = controller;
+			dispatch_after(
+			    dispatch_time(DISPATCH_TIME_NOW, (int64_t)(seconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+				    @autoreleasepool {
+					    OverlayWindowController *live = weakController;
+					    if (!live || live.peekGeneration != generation || !live.peekActive || !live.shouldBeVisible)
+						    return;
+					    live.peekActive = NO;
+					    [live.window setAlphaValue:1.0];
+					    [live reassertOverlayOnActiveSpace];
+				    }
+			    });
+		}
+	});
+}
+
 /// Select whether this surface uses the live grid fill override.
 void NeruSetGridCellOpacityEnabled(OverlayWindow window, int enabled) {
 	if (!window)
@@ -4803,6 +4848,8 @@ void NeruSetGridCellOpacityEnabled(OverlayWindow window, int enabled) {
 	dispatch_async(dispatch_get_main_queue(), ^{
 		@autoreleasepool {
 			controller.overlayView.gridCellOpacityEnabled = enabled != 0;
+			if (!enabled)
+				[controller cancelPeek];
 			[controller.overlayView setNeedsDisplay:YES];
 		}
 	});

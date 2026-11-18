@@ -741,8 +741,15 @@ func (a *Adapter) drawGrid(frame ports.GridFrame, kind drawKind) error {
 		return derrors.New(derrors.CodeNotSupported, "grid frame carries no grid")
 	}
 
-	if a.subgridDrawn.Swap(false) || kind == transitionDraw {
+	wasSubgrid := a.subgridDrawn.Swap(false)
+	if kind == transitionDraw {
 		a.manager.Clear()
+	} else if wasSubgrid {
+		if replacer, ok := a.manager.(manager.GridSurfaceReplacer); ok {
+			replacer.PrepareGridReplacement()
+		} else {
+			a.manager.Clear()
+		}
 	}
 
 	drawErr := a.manager.DrawGrid(frame.Grid, frame.Input, ResolvedStyle(a.styles).Grid)

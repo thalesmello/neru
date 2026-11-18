@@ -92,6 +92,14 @@ type KeyboardCaptureController interface {
 	SetKeyboardCaptureEnabled(enabled bool)
 }
 
+// GridSurfaceReplacer is an optional backend extension that invalidates only
+// its grid-diff cache before replacing fine-grid cells with base-grid cells.
+// It must not clear, hide, resize, or re-show the native surface. A backend
+// without this extension retains the legacy clear-before-replace path.
+type GridSurfaceReplacer interface {
+	PrepareGridReplacement()
+}
+
 // MonitorSelectTarget is one selectable monitor rendered by the monitor_select
 // overlay: a labeled panel centered on the monitor's bounds.
 type MonitorSelectTarget struct {

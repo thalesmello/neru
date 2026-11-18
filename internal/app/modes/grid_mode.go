@@ -242,7 +242,9 @@ func (m *GridMode) ResetInput() {
 		return
 	}
 
-	handler.grid.Manager.Reset()
+	// This method owns the full redraw below. The notifying Reset would
+	// first narrow/redraw through onUpdate and then redraw again here.
+	handler.grid.Manager.ResetSilent()
 
 	// Clear the stale selection, since no cell is selected once the input is
 	// reset. The session builds its Context and Manager together, so the guard

@@ -254,7 +254,12 @@ func (o *Overlay) Hide() {
 // Clear clears the grid overlay and resets state.
 func (o *Overlay) Clear() {
 	C.NeruClearOverlay(o.window)
-	// Reset previous state so next draw will be a full redraw
+	o.InvalidateGridState()
+}
+
+// InvalidateGridState forces a full cell replacement without clearing the
+// native surface. The draw applies the new cells in one layer transaction.
+func (o *Overlay) InvalidateGridState() {
 	o.gridStateMu.Lock()
 	o.previousGrid = nil
 	o.previousInput = ""
@@ -474,7 +479,8 @@ func (o *Overlay) ShowSubgrid(cell *domainGrid.Cell, style Style) {
 		borderWidth:            C.int(style.BorderWidth()),
 	}
 
-	C.NeruClearOverlay(o.window)
+	// Replace the cells directly; a clear in a separate main-queue block
+	// would present an empty frame between the base grid and its subgrid.
 	C.NeruDrawGridCells(o.window, &cells[0], C.int(len(cells)), finalStyle)
 
 	o.drawMu.RUnlock()
@@ -897,7 +903,8 @@ func (o *Overlay) drawGridCells(
 		borderWidth:            C.int(style.BorderWidth()),
 	}
 
-	C.NeruClearOverlay(o.window)
+	// Native drawing replaces the entire cell set atomically, including
+	// stale subgrid layers. Preserve the window and the rest of its content.
 	C.NeruDrawGridCells(o.window, &cGridCells[0], C.int(len(cGridCells)), finalStyle)
 
 	o.drawMu.RUnlock()

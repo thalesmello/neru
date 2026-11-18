@@ -8,6 +8,7 @@
 #import "accessibility.h"
 #import "accessibility_constants.h"
 #import "accessibility_visibility.h"
+#include "click_sequence.h"
 
 #import <Cocoa/Cocoa.h>
 #import <os/lock.h>
@@ -123,6 +124,8 @@ int NeruPerformMouseUpAtCursor(CGEventType upEvent, CGMouseButton button) {
 	return 1;
 }
 
+static int nextClickCount(CGPoint position, CGMouseButton button, CGEventFlags flags);
+
 /// Generic click at position
 /// @param pos Target position
 /// @param downEvent Mouse down event type
@@ -158,9 +161,12 @@ static int performClickAtPosition(
 		return 0;
 	}
 
-	// Set modifier flags (0 = no modifiers for clean click)
+	// All buttons share the same bounded single/double/triple sequence.
+	int clickCount = nextClickCount(pos, button, flags);
 	CGEventSetFlags(down, flags);
 	CGEventSetFlags(up, flags);
+	CGEventSetIntegerValueField(down, kCGMouseEventClickState, clickCount);
+	CGEventSetIntegerValueField(up, kCGMouseEventClickState, clickCount);
 
 	// Post mouse down, allow the system to process it, then post mouse up.
 	// Give the event loop a short moment to register the down event before sending up.
@@ -184,7 +190,9 @@ static int performClickAtPosition(
 static struct {
 	CGPoint lastPosition;          ///< Last click position
 	struct timeval lastClickTime;  ///< Last click time
-	int clickCount;                ///< Current click count
+	int clickCount;                ///< Current click count, capped at triple
+	CGMouseButton button;
+	CGEventFlags flags;
 } clickState = {0};
 
 /// Lock guarding clickState. NeruPerformLeftClickAtPosition may be called
@@ -199,80 +207,30 @@ static long long getCurrentTimeMs(void) {
 	return (long long)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
-/// Perform left click at position
-/// @param position Target position
-/// @param restoreCursor Whether to restore cursor position after click
-/// @return 1 on success, 0 on failure
-int NeruPerformLeftClickAtPosition(CGPoint position, bool restoreCursor, CGEventFlags flags) {
-	// Capture original cursor position before moving
-	CGPoint originalPosition = CGPointZero;
-	if (restoreCursor) {
-		CGEventRef currentEvent = CGEventCreate(NULL);
-		if (currentEvent) {
-			originalPosition = CGEventGetLocation(currentEvent);
-			CFRelease(currentEvent);
-		}
-	}
-
-	// Determine click count (single, double, triple...)
+// Only successful event creation reaches this tracker. Button/modifier changes,
+// a new point, an expired interval, and the fourth click start a new sequence.
+static int nextClickCount(CGPoint position, CGMouseButton button, CGEventFlags flags) {
 	os_unfair_lock_lock(&clickStateLock);
-
-	long long currentTime = getCurrentTimeMs();
-	long long lastTime = (long long)clickState.lastClickTime.tv_sec * 1000 + clickState.lastClickTime.tv_usec / 1000;
-	long long timeDiff = currentTime - lastTime;
-	double distance =
-	    sqrt(pow(position.x - clickState.lastPosition.x, 2) + pow(position.y - clickState.lastPosition.y, 2));
-
-	if (timeDiff < kNeruDoubleClickIntervalMs && distance < kNeruDoubleClickDistancePoints) {
-		// Same location in quick succession, so increment the click count
-		clickState.clickCount++;
-	} else {
-		// New click sequence
-		clickState.clickCount = 1;
-	}
-
+	long long now = getCurrentTimeMs();
+	long long previous = (long long)clickState.lastClickTime.tv_sec * 1000 + clickState.lastClickTime.tv_usec / 1000;
+	double distance = hypot(position.x - clickState.lastPosition.x, position.y - clickState.lastPosition.y);
+	BOOL same = clickState.button == button && clickState.flags == flags;
+	BOOL continuation = same && now >= previous && now - previous < kNeruDoubleClickIntervalMs &&
+	                    distance < kNeruDoubleClickDistancePoints;
+	clickState.clickCount = NeruClickSequenceCount(clickState.clickCount, continuation);
 	clickState.lastPosition = position;
+	clickState.button = button;
+	clickState.flags = flags;
 	gettimeofday(&clickState.lastClickTime, NULL);
-
-	int clickCount = clickState.clickCount;
+	int count = clickState.clickCount;
 	os_unfair_lock_unlock(&clickStateLock);
+	return count;
+}
 
-	NeruMoveMouseWithType(position, kCGEventMouseMoved);
-
-	CGEventRef down = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseDown, position, kCGMouseButtonLeft);
-	CGEventRef up = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseUp, position, kCGMouseButtonLeft);
-	if (!down || !up) {
-		if (down)
-			CFRelease(down);
-		if (up)
-			CFRelease(up);
-		if (restoreCursor)
-			NeruMoveMouseWithType(originalPosition, kCGEventMouseMoved);
-		return 0;
-	}
-
-	// Set modifier flags and click count
-	CGEventSetFlags(down, flags);
-	CGEventSetFlags(up, flags);
-
-	CGEventSetIntegerValueField(down, kCGMouseEventClickState, clickCount);
-	CGEventSetIntegerValueField(up, kCGMouseEventClickState, clickCount);
-
-	// Post mouse down and allow a short moment before posting mouse up to ensure
-	// the system attributes the down/up pair to the target location.
-	postPositionedEventLocked(down, position);
-	CFRunLoopRunInMode(kCFRunLoopDefaultMode, kNeruMouseClickDownUpDelay, false);
-
-	postPositionedEventLocked(up, position);
-	CFRelease(down);
-	CFRelease(up);
-
-	// Wait briefly to let the OS process the click before potentially moving the cursor back.
-	CFRunLoopRunInMode(kCFRunLoopDefaultMode, kNeruMouseClickProcessingDelay, false);
-
-	if (restoreCursor)
-		NeruMoveMouseWithType(originalPosition, kCGEventMouseMoved);
-	return 1;
+/// Perform left click at position, including bounded double/triple detection.
+int NeruPerformLeftClickAtPosition(CGPoint position, bool restoreCursor, CGEventFlags flags) {
+	return performClickAtPosition(
+	    position, kCGEventLeftMouseDown, kCGEventLeftMouseUp, kCGMouseButtonLeft, restoreCursor, flags);
 }
 
 /// Perform right click at position

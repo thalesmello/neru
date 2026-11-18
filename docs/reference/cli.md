@@ -486,6 +486,12 @@ Takes no value. Modes: `grid`.
 
 Select a cell's center as soon as its label is typed, without opening the subgrid.
 
+#### `--confirm-on-repeat`
+
+Takes no value. Modes: `grid`.
+
+In the fine subgrid, re-pressing the key for the already-selected point clicks it; a key for a different point only moves the aim.
+
 #### `--zoom-to-depth`
 
 Takes a value. Modes: `recursive_grid`.

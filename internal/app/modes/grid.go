@@ -255,6 +255,10 @@ func applyGridFlags(ctx *grid.Context, activation modecmd.Activation, isRefresh 
 			ctx.SetNoSubgrid(*activation.NoSubgrid)
 		}
 
+		if activation.ConfirmOnRepeat != nil {
+			ctx.SetConfirmOnRepeat(*activation.ConfirmOnRepeat)
+		}
+
 		return
 	}
 
@@ -263,6 +267,7 @@ func applyGridFlags(ctx *grid.Context, activation modecmd.Activation, isRefresh 
 	ctx.SetPendingModifier(activation.Modifier)
 	ctx.SetRepeat(activation.Repeat != nil && *activation.Repeat)
 	ctx.SetNoSubgrid(activation.NoSubgrid != nil && *activation.NoSubgrid)
+	ctx.SetConfirmOnRepeat(activation.ConfirmOnRepeat != nil && *activation.ConfirmOnRepeat)
 	ctx.SetCursorFollowSelection(
 		resolveCursorFollowSelection(activation.CursorFollowSelection),
 	)

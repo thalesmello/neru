@@ -128,6 +128,13 @@ func (m *Manager) SetSubgridEnabled(enabled bool) {
 	m.subgridOff = !enabled
 }
 
+// InSubgrid reports whether the manager is currently accepting fine-subgrid
+// key input, that is, the main-grid cell label is complete and the user is
+// now refining within that cell.
+func (m *Manager) InSubgrid() bool {
+	return m.inSubgrid
+}
+
 // Reset resets the input state and triggers a redraw via the onUpdate callback.
 func (m *Manager) Reset() {
 	m.ResetSilent()

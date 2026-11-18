@@ -128,8 +128,9 @@ func (c *baseContext) CaptureScope() string {
 type Context struct {
 	baseContext
 
-	gridInstance **domainGrid.Grid
-	noSubgrid    bool
+	gridInstance    **domainGrid.Grid
+	noSubgrid       bool
+	confirmOnRepeat bool
 }
 
 // SetNoSubgrid sets whether a full cell label completes the selection rather
@@ -159,9 +160,22 @@ func (c *Context) GridInstance() **domainGrid.Grid {
 	return c.gridInstance
 }
 
+// SetConfirmOnRepeat sets whether a repeated key aimed at the same fine-subgrid
+// point clicks rather than re-selecting.
+func (c *Context) SetConfirmOnRepeat(v bool) {
+	c.confirmOnRepeat = v
+}
+
+// ConfirmOnRepeat reports whether a repeated key aimed at the same
+// fine-subgrid point should click rather than re-select.
+func (c *Context) ConfirmOnRepeat() bool {
+	return c.confirmOnRepeat
+}
+
 // Reset resets the grid context to its initial state.
 func (c *Context) Reset() {
 	c.gridInstance = nil
 	c.noSubgrid = false
+	c.confirmOnRepeat = false
 	c.baseContext.Reset()
 }

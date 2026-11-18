@@ -69,6 +69,11 @@ type Activation struct {
 	// its label is typed, without opening the subgrid.
 	NoSubgrid *bool
 
+	// ConfirmOnRepeat makes a repeated key aimed at the same fine-subgrid
+	// point click rather than re-select. A key aimed at a different point only
+	// selects. Only meaningful when the subgrid is active (not --no-subgrid).
+	ConfirmOnRepeat *bool
+
 	// ZoomToDepth auto-zooms recursive grid to a depth.
 	ZoomToDepth *int
 

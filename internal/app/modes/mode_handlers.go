@@ -617,6 +617,15 @@ func (h *handlerState) handleGridModeKey(key string) {
 		return
 	}
 
+	// Capture the aim point before routing so the confirm-on-repeat branch can
+	// compare it against the point this key lands on.
+	var priorPoint image.Point
+	var hasPrior bool
+	inFineGrid := h.grid.Context.ConfirmOnRepeat() && h.grid.Manager != nil && h.grid.Manager.InSubgrid()
+	if inFineGrid {
+		priorPoint, hasPrior = h.grid.Context.SelectionPoint()
+	}
+
 	gridKeyResult := h.grid.Router.RouteKey(key)
 
 	if gridKeyResult.Complete() {
@@ -631,6 +640,46 @@ func (h *handlerState) handleGridModeKey(key string) {
 			zap.Int("x", absolutePoint.X),
 			zap.Int("y", absolutePoint.Y),
 		)
+
+		// Confirm-on-repeat: when the flag is set and a subgrid was active before
+		// routing (we captured hasPrior above), decide aim-vs-click solely on
+		// whether the point changed — no timeout involved.
+		if inFineGrid && hasPrior {
+			if absolutePoint == priorPoint {
+				// Same point again: perform the click but keep the mode and
+				// fine grid intact so further presses click the same point.
+				clickAction := "left_click"
+				if h.grid.Context.PendingAction() != nil {
+					clickAction = *h.grid.Context.PendingAction()
+				}
+
+				h.logger.Debug("Confirm-on-repeat: same point, clicking",
+					zap.Int("x", absolutePoint.X),
+					zap.Int("y", absolutePoint.Y))
+
+				h.performActionChain(clickAction, h.grid.Context.PendingModifier(), absolutePoint)
+				h.refreshGridVirtualPointer()
+			} else {
+				// Different point: only move the aim, never click.
+				h.logger.Debug("Confirm-on-repeat: different point, aiming",
+					zap.Int("x", absolutePoint.X),
+					zap.Int("y", absolutePoint.Y))
+				h.refreshGridVirtualPointer()
+			}
+
+			return
+		}
+
+		// First arrival at a subgrid point with confirm-on-repeat: only aim,
+		// never click, even if a pendingAction is configured.
+		if inFineGrid && !hasPrior {
+			h.logger.Debug("Confirm-on-repeat: first aim",
+				zap.Int("x", absolutePoint.X),
+				zap.Int("y", absolutePoint.Y))
+			h.refreshGridVirtualPointer()
+
+			return
+		}
 
 		repeat := h.grid.Context.Repeat()
 		pendingAction := h.grid.Context.PendingAction()

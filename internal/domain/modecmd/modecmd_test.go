@@ -218,6 +218,14 @@ func flagCases() map[modecmd.Flag]flagCase {
 			applied: func(a modecmd.Activation) bool { return a.CursorFollowSelection != nil },
 			build:   func(a *modecmd.Activation) { a.CursorFollowSelection = new(false) },
 		},
+		modecmd.FlagConfirmOnRepeat: {
+			mode: domain.ModeGrid,
+			args: []string{"--confirm-on-repeat"},
+			applied: func(a modecmd.Activation) bool {
+				return a.ConfirmOnRepeat != nil && *a.ConfirmOnRepeat
+			},
+			build: func(a *modecmd.Activation) { a.ConfirmOnRepeat = new(true) },
+		},
 	}
 }
 

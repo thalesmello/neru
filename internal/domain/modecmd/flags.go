@@ -71,6 +71,10 @@ const (
 	// typed, without the subgrid.
 	FlagNoSubgrid Flag = "no-subgrid"
 
+	// FlagConfirmOnRepeat makes a repeated key aimed at the same fine-subgrid
+	// point click rather than re-select.
+	FlagConfirmOnRepeat Flag = "confirm-on-repeat"
+
 	// FlagZoomToDepth auto-zooms recursive grid to a depth.
 	FlagZoomToDepth Flag = "zoom-to-depth"
 
@@ -135,6 +139,7 @@ const (
 	usageSplitWord           = "Hint each word of detected text separately. Needs the vision strategy"
 	usageTargets             = "Label these targets instead of scanning, as JSON in the shape 'neru query hints --json' prints. Refuses the flags that decide what a scan collects, and --repeat"
 	usageNoSubgrid           = "Select a cell's center as soon as its label is typed, without opening the subgrid"
+	usageConfirmOnRepeat     = "In the fine subgrid, re-pressing the key for the already-selected point clicks it; a key for a different point only moves the aim"
 	usageZoomToDepth         = "Open recursive grid already zoomed to this depth at the cursor"
 )
 
@@ -623,6 +628,12 @@ var descriptors = []Descriptor{
 		func(activation *Activation) { activation.NoSubgrid = enabled() },
 		func(activation Activation) []string {
 			return renderPresence(FlagNoSubgrid, activation.NoSubgrid)
+		},
+	),
+	presenceFlag(FlagConfirmOnRepeat, "", usageConfirmOnRepeat, gridOnly,
+		func(activation *Activation) { activation.ConfirmOnRepeat = enabled() },
+		func(activation Activation) []string {
+			return renderPresence(FlagConfirmOnRepeat, activation.ConfirmOnRepeat)
 		},
 	),
 	valueFlag(FlagZoomToDepth, "", usageZoomToDepth, msgZoomToDepthValue, recursiveGridOnly,

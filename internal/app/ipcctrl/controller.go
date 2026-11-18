@@ -314,6 +314,9 @@ func (c *Controller) registerHandlers(cfg *config.Config) {
 	c.infoHandler.RegisterHandlers(c.Handlers)
 
 	overlayHandler := NewOverlayHandler(c.AppState, c.Logger, c.Overlay)
+	if c.Modes != nil {
+		overlayHandler.setGridRepeat = c.Modes.SetGridRepeat
+	}
 	overlayHandler.RegisterHandlers(c.Handlers)
 
 	scrollHandler := NewScrollHandler(c.AppState, c.ScrollService, c.Logger)

@@ -87,6 +87,9 @@ const (
 
 	// CommandPeekGrid masks the active grid without changing its mode or input.
 	CommandPeekGrid = "peek-grid"
+
+	// CommandSetGridRepeat changes active confirmation disposition in place.
+	CommandSetGridRepeat = "set-grid-repeat"
 )
 
 // Mode-related constants.

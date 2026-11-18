@@ -26,6 +26,7 @@ import (
 type extensionName string
 
 const (
+	extensionRepeatControl     extensionName = "repeat control"
 	extensionSelectionTracking extensionName = "selection tracking"
 	extensionCellNavigation    extensionName = "cell navigation"
 	extensionBisecting         extensionName = "bisecting"
@@ -39,6 +40,9 @@ const (
 	extensionScopeReport       extensionName = "capture scope reporting"
 	extensionSelectionRegion   extensionName = "selection region reporting"
 )
+
+// repeatSetter updates confirmation disposition without reactivating a mode.
+type repeatSetter interface{ ApplyRepeat(bool) bool }
 
 // selectionTracker is an optional Mode extension: a mode that remembers where
 // its selection sits, separately from where the real cursor is.

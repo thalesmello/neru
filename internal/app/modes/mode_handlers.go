@@ -657,8 +657,12 @@ func (h *handlerState) handleGridModeKey(key string) {
 					zap.Int("x", absolutePoint.X),
 					zap.Int("y", absolutePoint.Y))
 
-				h.performActionChain(clickAction, h.grid.Context.PendingModifier(), absolutePoint)
-				h.refreshGridVirtualPointer()
+				if h.grid.Context.Repeat() {
+					h.performActionChain(clickAction, h.grid.Context.PendingModifier(), absolutePoint)
+					h.refreshGridVirtualPointer()
+				} else {
+					h.executeActionAtPoint(&clickAction, h.grid.Context.PendingModifier(), absolutePoint, false, nil)
+				}
 			} else {
 				// Different point: only move the aim, never click.
 				h.logger.Debug("Confirm-on-repeat: different point, aiming",

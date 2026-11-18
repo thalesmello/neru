@@ -26,7 +26,8 @@ type OverlayHandler struct {
 	// platform names the platform the handler answers for.
 	platform func() (parity.Platform, bool)
 	// overlay is the optional overlay port used for grid-appearance operations.
-	overlay ports.OverlayPort
+	overlay       ports.OverlayPort
+	setGridRepeat func(bool) bool
 }
 
 // NewOverlayHandler creates a new overlay command handler.
@@ -56,6 +57,7 @@ func (h *OverlayHandler) RegisterHandlers(
 	handlers[domain.CommandToggleScreenShare] = h.handleToggleScreenShare
 	handlers[domain.CommandSetGridOpacity] = h.handleSetGridOpacity
 	handlers[domain.CommandPeekGrid] = h.handlePeekGrid
+	handlers[domain.CommandSetGridRepeat] = h.handleSetGridRepeat
 }
 
 func (h *OverlayHandler) handleToggleScreenShare(

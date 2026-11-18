@@ -7,6 +7,7 @@ import (
 
 	"github.com/y3owk1n/neru/internal/app/components"
 	gridcomponent "github.com/y3owk1n/neru/internal/app/components/grid"
+	scrollcomponent "github.com/y3owk1n/neru/internal/app/components/scroll"
 	"github.com/y3owk1n/neru/internal/app/services"
 	"github.com/y3owk1n/neru/internal/config"
 	"github.com/y3owk1n/neru/internal/domain"
@@ -22,6 +23,7 @@ func TestGridMode_ConfirmOnRepeat_ClicksOnlyAnUnchangedFinePoint(t *testing.T) {
 	manager := domainGrid.NewManager(g, domain.GridDimensions{Rows: 3, Cols: 3}, "uiojklm,.", nil, nil, zap.NewNop())
 	ctx := &gridcomponent.Context{}
 	ctx.SetConfirmOnRepeat(true)
+	ctx.SetRepeat(true)
 	ctx.SetCursorFollowSelection(false)
 	ctx.SetGridInstance(&g)
 	clicks := []image.Point{}
@@ -30,6 +32,7 @@ func TestGridMode_ConfirmOnRepeat_ClicksOnlyAnUnchangedFinePoint(t *testing.T) {
 		return nil
 	}}
 	h := newHandlerWithState(handlerState{ctx: context.Background(), logger: zap.NewNop(), config: config.DefaultConfig(), appState: state.NewAppState(), cursorState: state.NewCursorState(),
+		scroll:       &components.ScrollComponent{Context: &scrollcomponent.Context{}},
 		grid:         &components.GridComponent{Manager: manager, Router: domainGrid.NewRouter(manager, zap.NewNop()), Context: ctx},
 		screenBounds: image.Rect(0, 0, 900, 600), actionService: services.NewActionService(&mocks.MockAccessibilityPort{}, mouse, &mocks.MockOverlayPort{}, &mocks.MockSystemPort{}, zap.NewNop())})
 	for _, key := range g.Cells()[0].Coordinate() {
@@ -65,5 +68,11 @@ func TestGridMode_ConfirmOnRepeat_ClicksOnlyAnUnchangedFinePoint(t *testing.T) {
 	h.handleGridModeKey("u")
 	if len(clicks) != 4 {
 		t.Fatal("unchanged new aim did not click")
+	}
+	h.appState.SetMode(domain.ModeGrid)
+	ctx.SetRepeat(false)
+	h.handleGridModeKey("u")
+	if h.appState.CurrentMode() != domain.ModeIdle {
+		t.Fatal("non-repeating fine confirmation did not exit")
 	}
 }

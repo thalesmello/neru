@@ -1450,6 +1450,16 @@ macOS Neru uses the deprecated `NSWindow.sharingType` API:
 | 15.0 to 15.3   | Partially effective                    |
 | 15.4 and newer | Limited to ScreenCaptureKit-based apps |
 
+### neru set-grid-repeat
+
+```bash
+neru set-grid-repeat --state on|off
+```
+
+Changes the active Grid or Recursive Grid's repeat flag without resetting its
+selection, rebuilding its layout, or changing keyboard capture. A repeated
+fine-grid confirmation exits when repeat is off; repeat keeps the grid active.
+
 ### neru peek-grid
 
 ```bash

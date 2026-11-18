@@ -25,6 +25,7 @@ type extensionAxis struct {
 // allExtensions is every optional extension there is. A new one is added here
 // once. The matrix then asserts it for every mode.
 var allExtensions = []extensionAxis{
+	{name: extensionBaseState, carried: func(mode Mode) bool { _, ok := mode.(baseStateReporter); return ok }},
 	{name: extensionNativeNudge, carried: func(mode Mode) bool { _, ok := mode.(nativeNudger); return ok }},
 	{name: extensionRepeatControl, carried: func(mode Mode) bool { _, ok := mode.(repeatSetter); return ok }},
 	{
@@ -143,6 +144,7 @@ var modeExtensionMatrix = map[domain.Mode][]extensionName{
 		extensionScopeReport,
 	},
 	domain.ModeGrid: {
+		extensionBaseState,
 		extensionNativeNudge,
 		extensionRepeatControl,
 		extensionSelectionTracking,
@@ -157,6 +159,7 @@ var modeExtensionMatrix = map[domain.Mode][]extensionName{
 		extensionSelectionRegion,
 	},
 	domain.ModeRecursiveGrid: {
+		extensionBaseState,
 		extensionRepeatControl,
 		extensionSelectionTracking,
 		extensionCellNavigation,

@@ -12,18 +12,32 @@ import (
 	"github.com/y3owk1n/neru/internal/ports"
 )
 
-// ResetCurrentMode clears the active mode's accumulated input without exiting
-// it. A mode with no input to clear says so in the debug log.
-func (h *Handler) ResetCurrentMode() {
+// ResetCurrentMode clears the active mode's accumulated input in place. With
+// toggle enabled, an untouched grid exits instead. Other modes refuse toggle.
+func (h *Handler) ResetCurrentMode(toggle ...bool) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	if len(toggle) > 0 && toggle[0] {
+		reporter, ok := activeModeExtension[baseStateReporter](&h.handlerState)
+		if !ok {
+			return derrors.New(derrors.CodeInvalidInput, "reset --toggle requires grid or recursive-grid mode")
+		}
+		if reporter.AtBase() {
+			h.exitMode()
+
+			return nil
+		}
+	}
+
 	editor, ok := activeModeEffect[inputEditor](&h.handlerState, extensionInputEditing)
 	if !ok {
-		return
+		return nil
 	}
 
 	h.trackSelection(editor.ResetInput)
+
+	return nil
 }
 
 // BackspaceCurrentMode takes back the active mode's most recent unit of input

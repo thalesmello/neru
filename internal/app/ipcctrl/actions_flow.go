@@ -121,7 +121,7 @@ func parseSleepDuration(durationStr string) (time.Duration, error) {
 	return time.Duration(secs * float64(time.Second)), nil
 }
 
-func (h *ActionsHandler) handleResetAction() ipc.Response {
+func (h *ActionsHandler) handleResetAction(parsed parsedActionArgs) ipc.Response {
 	if h.modesHandler == nil {
 		return ipc.Response{
 			Success: false,
@@ -130,7 +130,9 @@ func (h *ActionsHandler) handleResetAction() ipc.Response {
 		}
 	}
 
-	h.modesHandler.ResetCurrentMode()
+	if err := h.modesHandler.ResetCurrentMode(parsed.useToggle); err != nil {
+		return refuseAction(err.Error())
+	}
 
 	return ipc.Response{Success: true, Message: "mode reset", Code: ipc.CodeOK}
 }

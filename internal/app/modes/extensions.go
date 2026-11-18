@@ -34,6 +34,7 @@ const (
 	extensionCursorFollow      extensionName = "cursor follow selection"
 	extensionExitSteps         extensionName = "exit step reporting"
 	extensionInputEditing      extensionName = "input editing"
+	extensionBaseState         extensionName = "base state reporting"
 	extensionHotkeyOverrides   extensionName = "hotkey override reporting"
 	extensionThemeRefresh      extensionName = "theme change refresh"
 	extensionScreenRefresh     extensionName = "screen change refresh"
@@ -141,6 +142,12 @@ type exitStepReporter interface {
 	// ExitSteps reports the --on-exit steps the mode's session was activated
 	// with, or nil when none were given or there is no session.
 	ExitSteps() []string
+}
+
+// baseStateReporter reports whether reset --toggle may exit instead of resetting.
+// It is a pure read of the session, not of the overlay or real cursor position.
+type baseStateReporter interface {
+	AtBase() bool
 }
 
 // inputEditor is an optional Mode extension: a mode with accumulated input the

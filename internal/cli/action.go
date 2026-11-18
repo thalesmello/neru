@@ -233,13 +233,33 @@ var ActionMoveMouseRelativeCmd = BuildMoveMouseRelativeCommand()
 var ActionMoveMonitorCmd = BuildMoveMonitorCommand()
 
 // ActionResetCmd resets current mode state.
-var ActionResetCmd = BuildActionCommand(
-	"reset",
-	"Reset current mode input state",
-	`Reset the active mode state (grid input, recursive-grid depth, etc.) without exiting.`,
-	[]string{"reset"},
-	false,
-)
+var ActionResetCmd = buildResetCommand()
+
+func buildResetCommand() *cobra.Command {
+	var toggle bool
+
+	cmd := BuildActionCommand(
+		"reset",
+		"Reset current mode input state",
+		`Reset the active mode state (grid input, recursive-grid depth, etc.) without exiting.
+
+With --toggle, exit an untouched base grid or recursive grid; otherwise reset
+in place. Other modes do not support --toggle.`,
+		[]string{"reset"},
+		false,
+	)
+	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
+		args := []string{"reset"}
+		if toggle {
+			args = append(args, "--toggle")
+		}
+
+		return sendCommand(cmd, "action", args)
+	}
+	cmd.Flags().BoolVar(&toggle, "toggle", false, "Exit an untouched base grid instead of resetting")
+
+	return cmd
+}
 
 // ActionBackspaceCmd performs mode-aware backspace.
 var ActionBackspaceCmd = BuildActionCommand(

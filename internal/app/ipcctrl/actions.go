@@ -149,9 +149,13 @@ func (h *ActionsHandler) handleAction(ctx context.Context, cmd ipc.Command) ipc.
 	// action from here on. The requested name is kept for the reply.
 	requestedActionName := actionName
 
-	actionName, phaseErrResp := resolveMouseButtonPhase(actionName, parsed)
-	if phaseErrResp != nil {
-		return *phaseErrResp
+	// Reset owns --toggle itself; do not reinterpret it as a mouse-button phase.
+	if !action.IsResetAction(actionName) {
+		var phaseErrResp *ipc.Response
+		actionName, phaseErrResp = resolveMouseButtonPhase(actionName, parsed)
+		if phaseErrResp != nil {
+			return *phaseErrResp
+		}
 	}
 
 	namedResp, handled := h.dispatchByName(ctx, cmd, actionName, parsed)
@@ -197,7 +201,7 @@ func (h *ActionsHandler) dispatchByName(
 		return h.handleScrollAction(ctx, actionName, parsed), true
 
 	case action.IsResetAction(actionName):
-		return h.handleResetAction(), true
+		return h.handleResetAction(parsed), true
 
 	case action.IsBackspaceAction(actionName):
 		return h.handleBackspaceAction(), true

@@ -78,7 +78,7 @@ var actionFlagSupport = map[string][]string{
 	string(action.NameCycleHint):       {flagBackward},
 	string(action.NameWaitForModeExit): {flagBail},
 
-	string(action.NameReset):         {},
+	string(action.NameReset):         {flagToggle},
 	string(action.NameBackspace):     {},
 	string(action.NameSearchHints):   {flagConfirmOnLabel},
 	string(action.NameRefreshHints):  {flagIfInputEmpty},
@@ -97,7 +97,7 @@ var actionFlagSupport = map[string][]string{
 // audience reads better as prose than as a list of every action name.
 var flagRejectionMessage = map[string]string{
 	flagState:  msgStateOnlyOnClicks,
-	flagToggle: msgStateOnlyOnClicks,
+	flagToggle: "--toggle is only supported with click actions and reset",
 	flagModifier: "--modifier is only supported with click, mouse button, " +
 		"and scroll actions",
 	flagSelection: "--selection is only supported with move_mouse, scroll, and mouse button actions",

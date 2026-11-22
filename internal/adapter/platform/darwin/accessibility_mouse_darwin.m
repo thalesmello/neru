@@ -9,6 +9,7 @@
 #import "accessibility_constants.h"
 #import "accessibility_visibility.h"
 #include "click_sequence.h"
+#include "mouse_event_wait.h"
 
 #import <Cocoa/Cocoa.h>
 #import <os/lock.h>
@@ -30,22 +31,27 @@
 /// button events escaped the lock could still land outside the magnified region
 /// even though the move preceding it was itself atomic. Each pan/post pair being
 /// individually consistent is what guarantees that whichever one happens to go
-/// last leaves the cursor and the viewport agreeing.
+/// last leaves the cursor and the viewport agreeing. A full click holds it
+/// across its bounded down/up interval too, so another synthetic cursor move
+/// cannot turn a click into a drag between the two button events.
 static os_unfair_lock mouseMoveLock = OS_UNFAIR_LOCK_INIT;
 
 /// Pan the zoom viewport to reveal a point and post an event positioned there
 /// @param event Event to post, with its location already set to position
 /// @param position Position the event acts at
-static void postPositionedEventLocked(CGEventRef event, CGPoint position) {
-	os_unfair_lock_lock(&mouseMoveLock);
-
+/// The caller holds mouseMoveLock.
+static void postPositionedEvent(CGEventRef event, CGPoint position) {
 	// Go threads have no autorelease pool, and posting autoreleases a CFData per
 	// event. Without this pool the daemon keeps every one until it exits.
 	@autoreleasepool {
 		NeruEnsureZoomViewportContainsPoint(position);
 		CGEventPost(kNeruMouseEventTapLocation, event);
 	}
+}
 
+static void postPositionedEventLocked(CGEventRef event, CGPoint position) {
+	os_unfair_lock_lock(&mouseMoveLock);
+	postPositionedEvent(event, position);
 	os_unfair_lock_unlock(&mouseMoveLock);
 }
 
@@ -168,18 +174,21 @@ static int performClickAtPosition(
 	CGEventSetIntegerValueField(down, kCGMouseEventClickState, clickCount);
 	CGEventSetIntegerValueField(up, kCGMouseEventClickState, clickCount);
 
-	// Post mouse down, allow the system to process it, then post mouse up.
-	// Give the event loop a short moment to register the down event before sending up.
-	postPositionedEventLocked(down, pos);
-	CFRunLoopRunInMode(kCFRunLoopDefaultMode, kNeruMouseClickDownUpDelay, false);
-
-	postPositionedEventLocked(up, pos);
+	// Keep the complete button pair ordered against every other synthetic move
+	// and button event. Never pump a run loop while the button is down: it can
+	// dispatch unrelated callbacks between these two posts. The bounded wait
+	// honors the existing click duration without permitting reentrant input.
+	os_unfair_lock_lock(&mouseMoveLock);
+	postPositionedEvent(down, pos);
+	NeruWaitForMouseEvents(kNeruMouseClickDownUpDelay);
+	postPositionedEvent(up, pos);
+	os_unfair_lock_unlock(&mouseMoveLock);
 	CFRelease(down);
 	CFRelease(up);
 
-	// Allow a small amount of time for the click to be processed by the system
-	// before restoring the cursor to avoid clicks landing in-transit.
-	CFRunLoopRunInMode(kCFRunLoopDefaultMode, kNeruMouseClickProcessingDelay, false);
+	// Wait outside the position lock so the window server can consume the up
+	// before Go verifies button state or we restore the cursor.
+	NeruWaitForMouseEvents(kNeruMouseClickProcessingDelay);
 
 	if (restoreCursor)
 		NeruMoveMouseWithType(originalPosition, kCGEventMouseMoved);

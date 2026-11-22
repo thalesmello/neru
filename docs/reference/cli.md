@@ -825,6 +825,11 @@ Press and release a mouse button, or one half of that.
 - `--state` and `--toggle` cannot be combined, and only these three
   subcommands accept them.
 - Neru releases held buttons when it returns to idle.
+- On macOS, a full click posts its down/up pair without allowing another
+  synthetic cursor event between them. After posting up, Neru checks the
+  window server's button state and retries only the release, at most three
+  times, if it is still down. Recovery does not override a physical mouse
+  hold; an unsuccessful synthetic release stays tracked for idle cleanup.
 - A comma chain takes `--modifier`, `--selection` and `--bare` when every
   action in it does. Neither a chain nor a mode `--action` takes `--state` or
   `--toggle`, so use the action name instead. `<button>_click --state down`

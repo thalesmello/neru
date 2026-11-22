@@ -9,6 +9,7 @@ import "C"
 
 import (
 	"image"
+	"time"
 
 	"github.com/y3owk1n/neru/internal/adapter/platform/mousestate"
 	"github.com/y3owk1n/neru/internal/derrors"
@@ -181,7 +182,7 @@ func LeftClickAtPoint(point image.Point, restoreCursor bool, modifiers action.Mo
 		)
 	}
 
-	return nil
+	return verifyClickReleased(point, action.ButtonLeft, modifiers)
 }
 
 // RightClickAtPoint performs a right mouse click at the specified point.
@@ -203,7 +204,7 @@ func RightClickAtPoint(point image.Point, restoreCursor bool, modifiers action.M
 		)
 	}
 
-	return nil
+	return verifyClickReleased(point, action.ButtonRight, modifiers)
 }
 
 // MiddleClickAtPoint performs a middle mouse click at the specified point.
@@ -225,6 +226,46 @@ func MiddleClickAtPoint(point image.Point, restoreCursor bool, modifiers action.
 		)
 	}
 
+	return verifyClickReleased(point, action.ButtonMiddle, modifiers)
+}
+
+// verifyClickReleased checks the window server, not only Neru's drag ledger.
+// CGEventPost has no delivery result; posting up is not proof it was observed.
+func verifyClickReleased(
+	point image.Point,
+	button action.MouseButton,
+	modifiers action.Modifiers,
+) error {
+	events := eventsForButton(button)
+	err := recoverClickRelease(clickReleaseOps{
+		isDown: func() bool {
+			return bool(
+				C.CGEventSourceButtonState(
+					C.kCGEventSourceStateCombinedSessionState,
+					events.button,
+				),
+			)
+		},
+		physicalDown: func() bool {
+			return bool(
+				C.CGEventSourceButtonState(C.kCGEventSourceStateHIDSystemState, events.button),
+			)
+		},
+		postUp: func() error {
+			if C.NeruPerformMouseUpAtCursor(events.up, events.button) == 0 {
+				return derrors.New(
+					derrors.CodeActionFailed,
+					"failed to post click release recovery",
+				)
+			}
+			return nil
+		},
+		pause:    func() { time.Sleep(clickReleaseSettleDelay) },
+		remember: func() { heldButtons.SetDown(button, point, modifiers) },
+	})
+	if err != nil {
+		return derrors.WrapActionFailed(err, "verify "+button.String()+" click release")
+	}
 	return nil
 }
 
@@ -291,6 +332,10 @@ func MouseUpAtPoint(
 		)
 	}
 
+	verifyErr := verifyClickReleased(point, button, modifiers)
+	if verifyErr != nil {
+		return verifyErr
+	}
 	heldButtons.Clear(button)
 
 	return nil
@@ -311,6 +356,10 @@ func MouseUp(button action.MouseButton) error {
 		)
 	}
 
+	verifyErr := verifyClickReleased(CursorPosition(), button, 0)
+	if verifyErr != nil {
+		return verifyErr
+	}
 	heldButtons.Clear(button)
 
 	return nil
